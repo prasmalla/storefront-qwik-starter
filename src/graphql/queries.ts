@@ -1,3 +1,5 @@
+import { CreateBackInStockInput } from '~/types';
+
 export const getActiveOrderQuery = () => ({
 	variables: {},
 	query: `
@@ -270,5 +272,18 @@ export const getOrderByCodeQuery = (variables: { code: string }) => ({
         metadata
       }
     }
+`,
+});
+
+export const activeBackInStockSubscriptionForProductVariantWithCustomerQuery = (
+	input: CreateBackInStockInput
+) => ({
+	variables: { input },
+	query: `	
+	query activeBackInStockSubscriptionForProductVariantWithCustomer($input: CreateBackInStockInput!) {
+		activeBackInStockSubscriptionForProductVariantWithCustomer(input: $input) {
+			email
+		}
+	}
 `,
 });

@@ -253,6 +253,12 @@ export type ActiveCustomerOrder = {
 	}[];
 };
 
+// back in stock
+export type CreateBackInStockInput = {
+	email: string;
+	productVariantId: string;
+};
+
 export type CurrencyCode =
 	/** United Arab Emirates dirham */
 	| 'AED'

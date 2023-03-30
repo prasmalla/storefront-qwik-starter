@@ -1,20 +1,31 @@
-import { $, component$, useContext, useStore, useTask$, useVisibleTask$ } from '@builder.io/qwik';
+import {
+	$,
+	component$,
+	useContext,
+	useSignal,
+	useStore,
+	useTask$,
+	useVisibleTask$,
+} from '@builder.io/qwik';
 import { routeLoader$ } from '@builder.io/qwik-city';
 import Alert from '~/components/alert/Alert';
 import Breadcrumbs from '~/components/breadcrumbs/Breadcrumbs';
+import { Button } from '~/components/buttons/Button';
 import CheckIcon from '~/components/icons/CheckIcon';
+import EyeIcon from '~/components/icons/EyeIcon';
 import HeartIcon from '~/components/icons/HeartIcon';
 import { Image } from '~/components/image/Image';
 import Price from '~/components/products/Price';
 import StockLevelLabel from '~/components/stock-level-label/StockLevelLabel';
 import TopReviews from '~/components/top-reviews/TopReviews';
 import { APP_STATE, IMAGE_PLACEHOLDER_BACKGROUND } from '~/constants';
-import { addItemToOrderMutation } from '~/graphql/mutations';
+import { Product } from '~/generated/graphql';
+import { addItemToOrderMutation, createBackInStockSubscriptionMutation } from '~/graphql/mutations';
+import { activeBackInStockSubscriptionForProductVariantWithCustomerQuery } from '~/graphql/queries';
+import { getProductBySlug } from '~/providers/products/products';
 import { ActiveOrder, Line, Variant } from '~/types';
 import { cleanUpParams, isEnvVariableEnabled, scrollToTop } from '~/utils';
 import { execute } from '~/utils/api';
-import { getProductBySlug } from '~/providers/products/products';
-import { Product } from '~/generated/graphql';
 
 export const useProductLoader = routeLoader$(async ({ params }) => {
 	const { slug } = cleanUpParams(params);
@@ -36,6 +47,40 @@ export default component$(() => {
 		quantity: {},
 		addItemToOrderError: '',
 	});
+	const notifyEmail = useSignal(appState.customer?.emailAddress ?? '');
+	const notifyMessage = useSignal('');
+
+	const findActiveSubscription = $(async () => {
+		const result = await execute<{
+			activeBackInStockSubscriptionForProductVariantWithCustomer: {
+				productVariantId: string;
+				email: string;
+			};
+		}>(
+			activeBackInStockSubscriptionForProductVariantWithCustomerQuery({
+				productVariantId: state.selectedVariantId,
+				email: notifyEmail.value,
+			})
+		);
+		if (result) {
+			const {
+				activeBackInStockSubscriptionForProductVariantWithCustomer: { email },
+			} = result;
+			notifyMessage.value = `All set! Back-In-Stock notification will be emailed to: ${email}`;
+		}
+	});
+
+	const notifyBackInStock = $(async () => {
+		const { createBackInStockSubscription } = await execute<{
+			createBackInStockSubscription: { email: string };
+		}>(
+			createBackInStockSubscriptionMutation({
+				email: notifyEmail.value,
+				productVariantId: state.selectedVariantId,
+			})
+		);
+		notifyMessage.value = `Success! Back-In-Stock notification will be emailed to: ${createBackInStockSubscription.email}`;
+	});
 
 	const calculateQuantities = $((product: Product) => {
 		state.quantity = {};
@@ -51,6 +96,7 @@ export default component$(() => {
 	calculateQuantities(state.product);
 
 	useVisibleTask$(() => {
+		findActiveSubscription();
 		scrollToTop();
 	});
 
@@ -104,7 +150,11 @@ export default component$(() => {
 									<select
 										class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
 										value={state.selectedVariantId}
-										onChange$={(e: any) => (state.selectedVariantId = e.target.value)}
+										onChange$={(e: any) => {
+											state.selectedVariantId = e.target.value;
+											notifyMessage.value = '';
+											findActiveSubscription();
+										}}
 									>
 										{state.product.variants.map((variant) => (
 											<option
@@ -171,6 +221,25 @@ export default component$(() => {
 								<span class="text-gray-500">{selectedVariant()?.sku}</span>
 								<StockLevelLabel stockLevel={selectedVariant()?.stockLevel} />
 							</div>
+							{selectedVariant()?.stockLevel === 'OUT_OF_STOCK' && (
+								<div class="flex mt-4">
+									<input
+										type="email"
+										name="notify-email"
+										value={notifyEmail.value}
+										onInput$={(ev) => {
+											notifyEmail.value = (ev.target as HTMLInputElement).value;
+											notifyMessage.value = '';
+										}}
+										class="mr-2 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+									/>
+									<Button disabled={notifyMessage.value !== ''} onClick$={notifyBackInStock}>
+										<EyeIcon /> &nbsp; Notify Me!
+									</Button>
+								</div>
+							)}
+							{!!notifyMessage.value && <p class="mt-6 text-green-600">{notifyMessage.value}</p>}
+
 							{!!state.addItemToOrderError && (
 								<div class="mt-4">
 									<Alert message={state.addItemToOrderError} />

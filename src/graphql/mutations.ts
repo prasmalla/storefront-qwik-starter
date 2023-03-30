@@ -1,4 +1,4 @@
-import { ActiveCustomer, ShippingAddress } from '~/types';
+import { ActiveCustomer, CreateBackInStockInput, ShippingAddress } from '~/types';
 
 export const addItemToOrderMutation = (productVariantId: string, quantity: number) => ({
 	variables: {
@@ -794,6 +794,17 @@ export const setOrderShippingAddressMutation = (input: ShippingAddress) => ({
 			method
 			amount
 			metadata
+		}
+	}
+`,
+});
+
+export const createBackInStockSubscriptionMutation = (input: CreateBackInStockInput) => ({
+	variables: { input },
+	query: `	
+	mutation createBackInStockSubscription($input: CreateBackInStockInput!) {
+		createBackInStockSubscription(input: $input) {
+			email
 		}
 	}
 `,
