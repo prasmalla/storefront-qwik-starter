@@ -17,7 +17,7 @@ export const requester = async <R, V>(
 	return execute<R, V>({ query: print(doc), variables: vars }, options.token);
 };
 
-const execute = async <R, V = Record<string, any>>(
+export const execute = async <R, V = Record<string, any>>(
 	body: ExecuteProps<V>,
 	authToken: string = ''
 ): Promise<R> => {
