@@ -72,14 +72,18 @@ export default component$(() => {
 
 	const notifyBackInStock = $(async () => {
 		const { createBackInStockSubscription } = await execute<{
-			createBackInStockSubscription: { email: string };
+			createBackInStockSubscription: { __typename: string; email: string; message: string };
 		}>(
 			createBackInStockSubscriptionMutation({
 				email: notifyEmail.value,
 				productVariantId: state.selectedVariantId,
 			})
 		);
-		notifyMessage.value = `Success! Back-In-Stock notification will be emailed to: ${createBackInStockSubscription.email}`;
+		if (createBackInStockSubscription.__typename === 'BackInStock') {
+			notifyMessage.value = `Success! Back-In-Stock notification will be emailed to: ${createBackInStockSubscription.email}`;
+		} else {
+			notifyMessage.value = `${createBackInStockSubscription.message}`;
+		}
 	});
 
 	const calculateQuantities = $((product: Product) => {

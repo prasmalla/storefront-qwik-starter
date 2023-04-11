@@ -44,7 +44,7 @@ const createHeaders = () => {
 const executeOnTheServer = server$(async (options: Options) => executeRequest(options));
 
 const executeRequest = async (options: Options) => {
-	const httpResponse = await fetch(ENV_VARIABLES.VITE_VENDURE_PUBLIC_URL, options);
+	const httpResponse = await fetch(ENV_VARIABLES.VITE_VENDURE_LOCAL_URL, options);
 	return await extractTokenAndData(httpResponse);
 };
 

@@ -813,7 +813,13 @@ export const createBackInStockSubscriptionMutation = (input: CreateBackInStockIn
 	query: `	
 	mutation createBackInStockSubscription($input: CreateBackInStockInput!) {
 		createBackInStockSubscription(input: $input) {
-			email
+			__typename
+			... on BackInStock {
+				email
+			}
+			... on BackInStockAlreadySubscribedError {
+				message
+			}
 		}
 	}
 `,
